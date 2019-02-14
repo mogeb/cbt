@@ -660,6 +660,8 @@ class Ceph(Cluster):
 
             # delete the cache pool
             self.rmpool(cache_name, cache_profile)
+        common.pdsh(settings.getnodes('head'), 'sudo %s -c %s ceph tell mon.* injectargs "--mon_allow_pool_delete = 1"' % (self.ceph_cmd, self.tmp_conf),
+                    continue_if_error=False).communicate()
         common.pdsh(settings.getnodes('head'), 'sudo %s -c %s osd pool delete %s %s --yes-i-really-really-mean-it' % (self.ceph_cmd, self.tmp_conf, name, name),
                     continue_if_error=False).communicate()
 
