@@ -42,10 +42,12 @@ class LibrbdFio(Benchmark):
         self.procs_per_volume = config.get('procs_per_volume', 1)
         self.random_distribution = config.get('random_distribution', None)
         self.rate_iops = config.get('rate_iops', None)
-        self.pool_name = "cbt-librbdfio"
         self.fio_out_format = "json,normal"
         self.data_pool = None 
+        # use_existing_volumes needs to be true to set the pool and rbd names
         self.use_existing_volumes = config.get('use_existing_volumes', False)
+        self.pool_name = config.get("poolname", "cbt-librbdfio")
+        self.rbdname = config.get('rbdname')
 
 	self.total_procs = self.procs_per_volume * self.volumes_per_client * len(settings.getnodes('clients').split(','))
         self.run_dir = '%s/osd_ra-%08d/op_size-%08d/concurrent_procs-%03d/iodepth-%03d/%s' % (self.run_dir, int(self.osd_ra), int(self.op_size), int(self.total_procs), int(self.iodepth), self.mode)
@@ -131,7 +133,12 @@ class LibrbdFio(Benchmark):
         self.analyze(self.out_dir)
 
     def mkfiocmd(self, volnum):
-        rbdname = 'cbt-librbdfio-`%s`-%d' % (common.get_fqdn_cmd(), volnum)
+        if self.use_existing_volumes and len(self.rbdname):
+            rbdname = self.rbdname
+        else:
+            rbdname = 'cbt-librbdfio-`%s`-%d' % (common.get_fqdn_cmd(), volnum)
+
+        logger.debug('Using rbdname %s', rbdname)
         out_file = '%s/output.%d' % (self.run_dir, volnum)
 
         fio_cmd = 'sudo %s --ioengine=rbd --clientname=admin --pool=%s --rbdname=%s --invalidate=0' % (self.cmd_path_full, self.pool_name, rbdname)
